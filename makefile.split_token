@@ -1,0 +1,125 @@
+############################# SPLIT THE DATA AND UNIFY TOKENIZATION ##############################
+
+ORIG_DATA_DIR=data/en-de/original_sources
+
+SPLIT_SIZE=1000
+
+SPLIT_TOKEN_DIR=tmp/en-de/split_tokenized
+
+#### before splitting, empty lines and their counterparts were removed from all three parts of the parallel triple using the following scripts
+# scripts/filter_empty.pl $(ORIG_DATA_DIR)/escape18-ape/NMT/all.en.gz $(ORIG_DATA_DIR)/escape18-ape/NMT/all.de.gz $(ORIG_DATA_DIR)/escape18-ape/NMT/all.nmt.gz $(ORIG_DATA_DIR)/escape18-ape/NMT/all.en.fil.gz $(ORIG_DATA_DIR)/escape18-ape/NMT/all.de.fil.gz $(ORIG_DATA_DIR)/escape18-ape/NMT/all.nmt.fil.gz
+# scripts/filter_empty.pl $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.en.gz $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.de.gz $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.pbsmt.gz $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.en.fil.gz $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.de.fil.gz $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.pbsmt.fil.gz
+##### the non-fil files were then replaced with the content of fil files
+
+escape18_split_token: \
+$(SPLIT_TOKEN_DIR)/escape18-ape/NMT/src.list $(SPLIT_TOKEN_DIR)/escape18-ape/NMT/pe.list $(SPLIT_TOKEN_DIR)/escape18-ape/NMT/mt.list \
+$(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/src.list $(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/pe.list $(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/mt.list
+
+$(SPLIT_TOKEN_DIR)/escape18-ape/NMT/src.list : $(ORIG_DATA_DIR)/escape18-ape/NMT/all.en.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/NMT/pe.list : $(ORIG_DATA_DIR)/escape18-ape/NMT/all.de.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/NMT/mt.list : $(ORIG_DATA_DIR)/escape18-ape/NMT/all.nmt.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/src.list : $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.en.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/pe.list : $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.de.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/mt.list : $(ORIG_DATA_DIR)/escape18-ape/PBSMT/all.pbsmt.gz
+$(SPLIT_TOKEN_DIR)/escape18-ape/NMT/src.list $(SPLIT_TOKEN_DIR)/escape18-ape/NMT/pe.list $(SPLIT_TOKEN_DIR)/escape18-ape/NMT/mt.list \
+$(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/src.list $(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/pe.list $(SPLIT_TOKEN_DIR)/escape18-ape/PBSMT/mt.list:
+	mkdir -p $(dir $@)/in_txt; \
+	id=`echo "$<" | cut -f2 -d'.'`; \
+	if [ "$$id" = "nmt" -o "$$id" = "pbsmt" ]; then \
+		id="mt"; \
+		lang="de"; \
+	else \
+		lang=$$id; \
+	fi; \
+	languc=`echo $$lang | tr a-z A-Z`; \
+	zcat $< | split -d -a 7 --additional-suffix .txt -l $(SPLIT_SIZE) - $(dir $@)/in_txt/part.$$id.; \
+	$(TREEX) -L$$lang \
+		Read::Sentences from='!$(dir $@)/in_txt/part.'$$id'.*.txt' \
+		W2A::$$languc::Tokenize \
+		Write::AttributeSentences layer=a attributes=form path='$(dir $@)' && \
+	rm -rf $(dir $@)/in_txt; \
+	find $(dir $@) -name "part.$$id.*.txt" | sort | sed 's|^.*/||g' > $@
+
+amunmt16_split_token : \
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/src.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/pe.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/mt.list \
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/src.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/pe.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/mt.list
+
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/src.list : $(ORIG_DATA_DIR)/amunmt16-ape/4M/4M.src.gz
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/pe.list : $(ORIG_DATA_DIR)/amunmt16-ape/4M/4M.pe.gz
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/mt.list : $(ORIG_DATA_DIR)/amunmt16-ape/4M/4M.mt.gz
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/src.list : $(ORIG_DATA_DIR)/amunmt16-ape/500K/500K.src.gz
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/pe.list : $(ORIG_DATA_DIR)/amunmt16-ape/500K/500K.pe.gz
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/mt.list : $(ORIG_DATA_DIR)/amunmt16-ape/500K/500K.mt.gz
+
+wmt_split_token : \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/train/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/dev/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/dev/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/dev/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/test/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/test/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/test/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt17-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt17-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt17-ape/train/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt18-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt18-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt18-ape/train/mt.list\
+$(SPLIT_TOKEN_DIR)/wmt18-ape/dev/src.list $(SPLIT_TOKEN_DIR)/wmt18-ape/dev/pe.list $(SPLIT_TOKEN_DIR)/wmt18-ape/dev/mt.list
+
+$(SPLIT_TOKEN_DIR)/wmt16-ape/train/src.list : $(ORIG_DATA_DIR)/wmt16-ape/train.src
+$(SPLIT_TOKEN_DIR)/wmt16-ape/train/pe.list : $(ORIG_DATA_DIR)/wmt16-ape/train.pe
+$(SPLIT_TOKEN_DIR)/wmt16-ape/train/mt.list : $(ORIG_DATA_DIR)/wmt16-ape/train.mt
+$(SPLIT_TOKEN_DIR)/wmt16-ape/dev/src.list : $(ORIG_DATA_DIR)/wmt16-ape/dev.src
+$(SPLIT_TOKEN_DIR)/wmt16-ape/dev/pe.list : $(ORIG_DATA_DIR)/wmt16-ape/dev.pe
+$(SPLIT_TOKEN_DIR)/wmt16-ape/dev/mt.list : $(ORIG_DATA_DIR)/wmt16-ape/dev.mt
+$(SPLIT_TOKEN_DIR)/wmt16-ape/test/src.list : $(ORIG_DATA_DIR)/wmt16-ape/test.src
+$(SPLIT_TOKEN_DIR)/wmt16-ape/test/pe.list : $(ORIG_DATA_DIR)/wmt16-ape/test.pe
+$(SPLIT_TOKEN_DIR)/wmt16-ape/test/mt.list : $(ORIG_DATA_DIR)/wmt16-ape/test.mt
+
+$(SPLIT_TOKEN_DIR)/wmt17-ape/train/src.list : $(ORIG_DATA_DIR)/wmt17-ape/train.src
+$(SPLIT_TOKEN_DIR)/wmt17-ape/train/pe.list : $(ORIG_DATA_DIR)/wmt17-ape/train.pe
+$(SPLIT_TOKEN_DIR)/wmt17-ape/train/mt.list : $(ORIG_DATA_DIR)/wmt17-ape/train.mt
+
+$(SPLIT_TOKEN_DIR)/wmt18-ape/train/src.list : $(ORIG_DATA_DIR)/wmt18-ape/train.src
+$(SPLIT_TOKEN_DIR)/wmt18-ape/train/pe.list : $(ORIG_DATA_DIR)/wmt18-ape/train.pe
+$(SPLIT_TOKEN_DIR)/wmt18-ape/train/mt.list : $(ORIG_DATA_DIR)/wmt18-ape/train.nmt
+$(SPLIT_TOKEN_DIR)/wmt18-ape/dev/src.list : $(ORIG_DATA_DIR)/wmt18-ape/dev.src
+$(SPLIT_TOKEN_DIR)/wmt18-ape/dev/pe.list : $(ORIG_DATA_DIR)/wmt18-ape/dev.pe
+$(SPLIT_TOKEN_DIR)/wmt18-ape/dev/mt.list : $(ORIG_DATA_DIR)/wmt18-ape/dev.nmt
+
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/src.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/pe.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/4M/mt.list \
+$(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/src.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/pe.list $(SPLIT_TOKEN_DIR)/amunmt16-ape/500K/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/train/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/dev/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/dev/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/dev/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt16-ape/test/src.list $(SPLIT_TOKEN_DIR)/wmt16-ape/test/pe.list $(SPLIT_TOKEN_DIR)/wmt16-ape/test/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt17-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt17-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt17-ape/train/mt.list \
+$(SPLIT_TOKEN_DIR)/wmt18-ape/train/src.list $(SPLIT_TOKEN_DIR)/wmt18-ape/train/pe.list $(SPLIT_TOKEN_DIR)/wmt18-ape/train/mt.list\
+$(SPLIT_TOKEN_DIR)/wmt18-ape/dev/src.list $(SPLIT_TOKEN_DIR)/wmt18-ape/dev/pe.list $(SPLIT_TOKEN_DIR)/wmt18-ape/dev/mt.list:
+	mkdir -p $(dir $@); \
+	id=`echo "$<" | cut -f2 -d'.'`; \
+	isgz=`echo "$<" | sed 's/^.*\.//g'`; \
+	catcmd=cat; \
+	if [ "$$isgz" = "gz" ]; then \
+		catcmd=zcat; \
+	fi; \
+	$$catcmd $< | split -d -a 7 --additional-suffix .txt -l $(SPLIT_SIZE) - $(dir $@)/part.$$id.; \
+	find $(dir $@) -name "part.$$id.*.txt" | sort | sed 's|^.*/||g' > $@
+
+
+$(SPLIT_TOKEN_DIR)/all.src.list $(SPLIT_TOKEN_DIR)/all.pe.list $(SPLIT_TOKEN_DIR)/all.mt.list :
+	id=`echo "$@" | cut -f2 -d'.'`; \
+	for i in `find $(dir $@) -name "$$id.list" | sort`; do \
+		d=`dirname $$i | sed 's|$(SPLIT_TOKEN_DIR)/||g'`; \
+		cat $$i | sed "s|^|$$d/|"; \
+	done | shuffle --random_seed 1986 > $@
+
+################################# limiting number of tokens per side ############################################
+
+MAX_TOKENS=100
+
+limit_sents : $(SPLIT_TOKEN_DIR)/all.src.list $(SPLIT_TOKEN_DIR)/all.pe.list $(SPLIT_TOKEN_DIR)/all.mt.list
+	paste $^ | while read line; do \
+		in_f=`echo "$$line" | sed 's|[^	]*	*|$(SPLIT_TOKEN_DIR)/&|g'`; \
+		echo $$in_f; \
+		out_f=`echo "$$in_f" | sed 's/\.txt/\.limit\.txt/g'`; \
+		paste $$in_f |\
+			perl -ne 'my $$l = $$_; chomp $$l; my @cols = split /\t/, $$l; my @a = grep {split(/ /, $$_) >= $(MAX_TOKENS)} @cols; if (!@a) {print "$$l\n";}' |\
+			scripts/split_by_columns.pl $$out_f; \
+	done;
+	for i in $^; do \
+	  new=$${i%.list}.limit.list; \
+	  cat $$i | sed 's|.txt$$|.limit.txt|' > $$new; \
+	done

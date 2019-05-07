@@ -1,0 +1,35 @@
+BITEXT_LEMMA_DIR=tmp/en-de/bitext_lemmatized
+TREEX_LEMMA_DIR=tmp/en-de/treex_lemmatized
+
+.SECONDARY :
+
+lemmatized_bitext : $(SPLIT_TOKEN_DIR)/all.src.limit.list $(SPLIT_TOKEN_DIR)/all.pe.limit.list $(SPLIT_TOKEN_DIR)/all.mt.limit.list
+	$(TREEX) \
+		Read::AlignedSentences en_src=@$(word 1,$^) de_pe=@$(word 2,$^) de_mt=@$(word 3,$^) skip_finished='{^$(SPLIT_TOKEN_DIR)/(.*)/part\.[^.]*\.(.*)\.txt$$}{$(TREEX_LEMMA_DIR)/$$1/part.$$2.treex.gz}' \
+		Util::SetGlobal language=en selector=src \
+		W2A::TokenizeOnWhitespace \
+		W2A::UDPipe tokenize=0 parse=0 model="data/models/udpipe/2.0/english-ud-2.0-conll17-170315.udpipe" \
+		Util::SetGlobal language=de selector=pe \
+		W2A::TokenizeOnWhitespace \
+		W2A::UDPipe tokenize=0 parse=0 model="data/models/udpipe/2.0/german-ud-2.0-conll17-170315.udpipe" \
+		Util::SetGlobal language=de selector=mt \
+		W2A::TokenizeOnWhitespace \
+		W2A::UDPipe tokenize=0 parse=0 model="data/models/udpipe/2.0/german-ud-2.0-conll17-170315.udpipe" \
+		Write::LemmatizedBitexts selector=src language=en to_language=de to_selector=mt substitute='{^$(SPLIT_TOKEN_DIR)/(.*)/part\.\.(.*)$$}{$(BITEXT_LEMMA_DIR)/$$1/part.$$2.src-mt.tsv}' \
+		Write::LemmatizedBitexts selector=src language=en to_language=de to_selector=pe substitute='{\.src-mt\.tsv$$}{.src-pe.tsv}' \
+		Write::LemmatizedBitexts selector=pe language=de to_language=de to_selector=mt substitute='{\.src-pe\.tsv$$}{.pe-mt.tsv}' \
+		Write::Treex substitute='{^$(BITEXT_LEMMA_DIR)/(.*)/part\.(.*)\.pe-mt\.tsv\.treex\.gz$$}{$(TREEX_LEMMA_DIR)/$$1/part.$$2.treex.gz}'
+
+$(BITEXT_LEMMA_DIR)/all.%.for_giza.txt.gz :
+	find $(BITEXT_LEMMA_DIR) -name '*.$*.tsv' | sort | shuffle --random_seed 1986 | xargs cat | gzip -c > $@
+	#find $(BITEXT_LEMMA_DIR) -name '*.$*.tsv' | sort | xargs cat | perl -ne '@c = split /\t/, $$_; print $$_ if ($$c[1] !~ /^\s*$$/ && $$c[2] !~ /^\s*$$/);' | gzip -c > $@
+
+$(BITEXT_LEMMA_DIR)/all.%.for_fa.txt.gz : $(BITEXT_LEMMA_DIR)/all.%.for_giza.txt.gz
+	zcat $< | perl -ne 'chomp $$_; @c = split /\t/, $$_; my @s = map {$$_ =~ s/^\s*//; $$_ =~ s/\s$$//; $$_} @c[1..2]; @s = map {length($$_) ? $$_ : "__xyz__"} @s; print join " ||| ", @s; print "\n";' | gzip -c > $@
+
+ids : $(BITEXT_LEMMA_DIR)/all.ids.limit.txt.gz
+$(BITEXT_LEMMA_DIR)/all.ids.limit.txt.gz : $(BITEXT_LEMMA_DIR)/all.pe-mt.for_giza.txt.gz
+	mkdir -p $(dir $@); \
+	zcat $< | cut -f1 | \
+	perl -ne 'chomp $$_; my @c = split /,/, $$_; my $$sstr = sprintf "{%s}", join ",", sort map {my $$s = $$_; $$s =~ s|^.*/part\.([^.]*)\..*$$|$$1|; $$s} @c; $$c[2] =~ s|^$(SPLIT_TOKEN_DIR)/||g; $$c[2] =~ s|/part\.[^.]*\.|/part.$$sstr.|g; print $$c[2]."\n";' | \
+	gzip -c > $@

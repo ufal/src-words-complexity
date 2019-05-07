@@ -1,0 +1,29 @@
+FAST_ALIGN_DIR=external_tools/fast_align-master/build
+FAST_ALIGN=$(FAST_ALIGN_DIR)/fast_align
+ATOOLS=$(FAST_ALIGN_DIR)/atools
+
+ALIGN_DIR=tmp/en-de/align
+
+$(ALIGN_DIR)/all.%.fa_gdfa.txt.gz : $(BITEXT_LEMMA_DIR)/all.%.for_fa.txt.gz
+	mkdir -p $(ALIGN_DIR); \
+	gunzip $<; \
+	$(FAST_ALIGN) -i $(subst .gz,,$<) -d -o -v | gzip -c > $(ALIGN_DIR)/all.$*.fa_left.txt.gz; \
+	$(FAST_ALIGN) -i $(subst .gz,,$<) -d -o -v -r | gzip -c > $(ALIGN_DIR)/all.$*.fa_right.txt.gz; \
+	gunzip $(ALIGN_DIR)/all.$*.fa_left.txt.gz; \
+	gunzip $(ALIGN_DIR)/all.$*.fa_right.txt.gz; \
+	$(ATOOLS) -i $(ALIGN_DIR)/all.$*.fa_left.txt -j $(ALIGN_DIR)/all.$*.fa_right.txt -c grow-diag-final-and | gzip -c > $@; \
+	gzip $(subst .gz,,$<); \
+	gzip $(ALIGN_DIR)/all.$*.fa_left.txt; \
+	gzip $(ALIGN_DIR)/all.$*.fa_right.txt
+
+fast_align_all :
+	for i in "src-mt" "src-pe" "pe-mt"; do \
+		qsubmit --mem=100g "make $(ALIGN_DIR)/all.$$i.fa_gdfa.txt.gz"; \
+	done
+
+align_split_all :
+	for i in "src-mt" "src-pe" "pe-mt"; do \
+		make align_split-$$i; \
+	done
+align_split-% : $(ALIGN_DIR)/all.%.fa_gdfa.txt.gz
+	zcat $< | scripts/split_file_by_addrs.pl $(BITEXT_LEMMA_DIR)/all.ids.limit.txt.gz $* $(ALIGN_DIR)

@@ -1,0 +1,39 @@
+ANNOT_DIR=tmp/en-de/labels
+
+stopwords.de.txt :
+	wget https://raw.githubusercontent.com/stopwords-iso/stopwords-de/master/$@
+
+$(ANNOT_DIR)/%.txt : stopwords.de.txt
+	mkdir -p $(dir $@); \
+	src_singlewords=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.\1.limit.src-singlewords|'`; \
+	src_mt_bitext=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.\1.limit.src-mt|'`; \
+	src_pe_bitext=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.\1.limit.src-pe|'`; \
+	src_mt_align=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.src-mt.\1.limit|'`; \
+	src_pe_align=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.src-pe.\1.limit|'`; \
+	pe_mt_align=`echo "$*" | sed 's|/part\.\([0-9]\+\)\.limit\.labels$$|/part.pe-mt.\1.limit|'`; \
+	scripts/extract_data_from_src-mt-pe_aligns.pl --stopwords $< \
+		--out-components $(ANNOT_DIR)/$$src_singlewords.txt \
+		$(BITEXT_LEMMA_DIR)/$$src_mt_bitext.tsv \
+		$(BITEXT_LEMMA_DIR)/$$src_pe_bitext.tsv \
+		$(ALIGN_DIR)/$$src_mt_align.txt \
+		$(ALIGN_DIR)/$$src_pe_align.txt \
+		$(ALIGN_DIR)/$$pe_mt_align.txt \
+	> $@
+
+extract_labels : $(ANNOT_DIR)/all.labels.list
+$(ANNOT_DIR)/all.labels.list : $(SPLIT_TOKEN_DIR)/all.src.list
+	log=tmp/qsubmits; \
+	mkdir -p $$log; \
+	( cat $< | sed 's|part\.[^.]*\.\([^.]*\)\.txt|part.\1.limit.labels.txt|' > $@ ) && \
+	while read f; do \
+		if [ "$(LRC)" = 1 ]; then \
+			qsubmit --logdir="$$log" "make $(ANNOT_DIR)/$$f"; \
+		else \
+			make $(ANNOT_DIR)/$$f & \
+		fi; \
+		sleep 0.05; \
+	done < $@
+
+$(ANNOT_DIR)/all.labels.limit.txt.gz : $(ANNOT_DIR)/all.labels.list
+	cat $< | sed 's|^|$(ANNOT_DIR)/|' | xargs cat | gzip -c > $@
+	
