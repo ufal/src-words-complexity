@@ -13,6 +13,10 @@ $(TRAIN_DEV_TEST_DIR)/all.labels.limit.txt.gz : $(ANNOT_DIR)/all.labels.limit.tx
 $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz : $(BITEXT_LEMMA_DIR)/all.ids.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/diff_length_src_labels.ids
 	zcat $(word 1,$^) | sed -f $(word 2,$^) | gzip -c > $@
 
+############################################################################################################################
+###################################### WMT DATA: FROM MANUAL POST-EDIT DATA ################################################
+############################################################################################################################
+
 wmt16-ape-train : REGEX=wmt16-ape/train/
 wmt17-ape-train : REGEX=wmt17-ape/train/
 wmt18-ape-train : REGEX=wmt18-ape/train/
@@ -32,8 +36,14 @@ $(TRAIN_DEV_TEST_DIR)/wmt17-ape-train.ids.limit.txt.gz \
 $(TRAIN_DEV_TEST_DIR)/wmt18-ape-train.ids.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
 	zcat $< | grep -P '^\S*$(REGEX)' | gzip -c > $@
 
+############################################################################################################################
+################################################## TRAIN SETS ##############################################################
+############################################################################################################################
+
 DEV_SIZE=971727
 TEST_SIZE=971728
+
+############################################# all training data ###########################################################
 
 train-amunmt16-escape18-ape : REGEX=(amunmt16|escape18)-ape/
 train-amunmt16-escape18-ape : $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.ids.limit.txt.gz
@@ -46,6 +56,9 @@ $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.labels.limit.txt.gz: $(TRAIN_D
 $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.ids.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
 	zcat $< | grep -P '^\S*$(REGEX)' | shuffle --random_seed 1986 |\
 	tail -n+$$(($(TEST_SIZE)+$(DEV_SIZE)+1)) | gzip -c > $@
+
+
+################################## NMT only data = data translated by PBSMT excluded #######################################
 
 train-amunmt16-escape18-ape-nmt : REGEX1=(amunmt16|escape18)-ape/
 train-amunmt16-escape18-ape-nmt : REGEX2=(amunmt16|escape18)-ape/(4M|500K|NMT)/
@@ -62,6 +75,18 @@ $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.ids.limit.txt.gz: $(TRAIN_
 	zcat $< | grep -P '^\S*$(REGEX1)' | shuffle --random_seed 1986 |\
 	tail -n+$$(($(TEST_SIZE)+$(DEV_SIZE)+1)) | \
 	grep -P "^\S*$(REGEX2)" | gzip -c > $@
+
+################################## a 10% sample of NMT only training data  ##################################################
+
+TRAIN_10_SIZE=1093203
+
+train_10-amunmt16-escape18-ape-nmt : $(TRAIN_DEV_TEST_DIR)/train_10-amunmt16-escape18-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train_10-amunmt16-escape18-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train_10-amunmt16-escape18-ape-nmt.ids.limit.txt.gz
+$(TRAIN_DEV_TEST_DIR)/train_10-amunmt16-escape18-ape-nmt.%.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.%.limit.txt.gz
+	zcat $< | head -n $(TRAIN_10_SIZE) | gzip -c > $@
+
+############################################################################################################################
+################################# DEV AND TEST SETS FROM SYNTETIC POST-EDIT DATA ###########################################
+############################################################################################################################
 
 dev-amunmt16-ape-4m dev-amunmt16-ape-500k dev-escape18-ape-nmt dev-escape18-ape-pbsmt: REGEX1=(amunmt16|escape18)-ape/
 dev-amunmt16-ape-4m : REGEX2=amunmt16-ape/4M/
