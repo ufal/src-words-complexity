@@ -8,6 +8,7 @@ class BertForWeighedTokenClassification(BertForTokenClassification):
     def __init__(self, config, *args, **kwargs):
         super().__init__(config)
         self.label_weights = torch.Tensor(kwargs.get("label_weights", [0.5, 0.5]))
+        print("Using cross entropy loss with following weights: {}".format(self.label_weights.cpu().numpy()), file=sys.stderr)
 
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None,
                 position_ids=None, head_mask=None):
@@ -21,7 +22,6 @@ class BertForWeighedTokenClassification(BertForTokenClassification):
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         if labels is not None:
             loss_fct = CrossEntropyLoss(self.label_weights)
-            print("Using cross entropy loss with following weights: {}".format(self.label_weights.numpy()), file=sys.stderr)
             # Only keep active parts of the loss
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1
@@ -33,3 +33,8 @@ class BertForWeighedTokenClassification(BertForTokenClassification):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), scores, (hidden_states), (attentions)
+
+    def to(self, device):
+        super().to(device)
+        # print("Sending label weights to {}".format(device.type), file=sys.stderr) 
+        self.label_weights = self.label_weights.to(device) 

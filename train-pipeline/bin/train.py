@@ -20,6 +20,7 @@ argparser.add_argument("--epochs", type=int, default=4, help="Number of epochs")
 argparser.add_argument("--batch-size", type=int, default=32, help="Batch size")
 argparser.add_argument("--no-fine-tune", action="store_true", help="Use the representation returned by the transformer as features.")
 argparser.add_argument("--max-grad-norm", default=1.0, type=float, help="Max gradient norm.")
+argparser.add_argument("--weight-positive", default=0.5, type=float, help="A weight of positive examples in cross-entropy loss (must be in [0,1]).")
 args = argparser.parse_args()
 
 torch.manual_seed(1986)
@@ -39,7 +40,7 @@ else:
 #  create model
 model = BertForWeighedTokenClassification.from_pretrained("bert-base-uncased",
                                                           num_labels=len(data.classes),
-                                                          label_weights=data.class_weights)
+                                                          label_weights=[1-args.weight_positive, args.weight_positive])
 model.to(device)
 
 # prepare optimizer
