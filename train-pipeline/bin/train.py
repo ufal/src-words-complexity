@@ -2,6 +2,10 @@ import argparse
 import sys
 import torch
 import numpy as np
+import os
+import re
+import datetime
+import logging
 from torch.optim import Adam
 from pytorch_transformers import *
 from tqdm import tqdm
@@ -23,6 +27,16 @@ argparser.add_argument("--max-grad-norm", default=1.0, type=float, help="Max gra
 argparser.add_argument("--weight-positive", default=0.5, type=float, help="A weight of positive examples in cross-entropy loss (must be in [0,1]).")
 args = argparser.parse_args()
 
+logdir_ignore_args = [ "train", "dev", "model" ]
+
+# Create logdir name
+args.logdir = os.path.join("runs", "{}-{}".format(
+    datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
+    ",".join(("{}={}".format(re.sub("(.)[^_]*_?", r"\1", key), value) for key, value in sorted(vars(args).items()) if key not in logdir_ignore_args))
+))
+os.mkdir(args.logdir)
+logging.basicConfig(filename=os.path.join(args.logdir, "run.log"), level=logging.DEBUG)
+
 torch.manual_seed(1986)
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -33,9 +47,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if device.type == "cuda":
     n_gpu = torch.cuda.device_count()
     gpu_name = torch.cuda.get_device_name(0)
-    print("Device: GPU {} (out of {} GPUs)".format(gpu_name, str(n_gpu)), file=sys.stderr)
+    logging.info("Device: GPU {} (out of {} GPUs)".format(gpu_name, str(n_gpu)))
 else:
-    print("Device: CPU", file=sys.stderr)
+    logging.info("Device: CPU")
 
 #  create model
 model = BertForWeighedTokenClassification.from_pretrained("bert-base-uncased",
@@ -45,7 +59,7 @@ model.to(device)
 
 # prepare optimizer
 if not args.no_fine_tune:
-    print("Fine-tuning the whole net.", file=sys.stderr)
+    logging.info("Fine-tuning the whole net.")
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'gamma', 'beta']
     optimizer_grouped_parameters = [
@@ -55,12 +69,12 @@ if not args.no_fine_tune:
          'weight_decay_rate': 0.0}
     ]
 else:
-    print("Using BERT as features.", file=sys.stderr)
+    logging.info("Using BERT as features.")
     param_optimizer = list(model.classifier.named_parameters())
     optimizer_grouped_parameters = [{"params": [p for n, p in param_optimizer]}]
 optimizer = Adam(optimizer_grouped_parameters, lr=3e-5)
 
-tb_writer = SummaryWriter()
+tb_writer = SummaryWriter(logdir=args.logdir)
 
 # Store our loss and accuracy for plotting
 train_loss_set = []
@@ -70,7 +84,7 @@ model.zero_grad()
 
 for epoch in range(args.epochs):
 
-    print("Running training epoch no. {}".format(epoch+1), file=sys.stderr)
+    logging.info("Running training epoch no. {}".format(epoch+1))
 
     # Set our model to training mode (as opposed to evaluation mode)
     model.train()
@@ -112,7 +126,7 @@ for epoch in range(args.epochs):
 
             progbar.update(args.batch_size)
 
-    print("Train loss: {}".format(train_loss / train_batch_steps), file=sys.stderr)
+    logging.info("Train loss: {}".format(train_loss / train_batch_steps))
 
     # VALIDATION on validation set
     model.eval()
@@ -144,15 +158,15 @@ for epoch in range(args.epochs):
             progbar.update(args.batch_size)
 
     dev_loss = dev_loss / dev_batch_steps
-    print("Validation loss: {}".format(dev_loss), file=sys.stderr)
+    logging.info("Validation loss: {}".format(dev_loss))
     dev_acc = accuracy_score(all_true_labels, all_pred_labels)
-    print("Validation Accuracy: {}".format(dev_acc), file=sys.stderr)
+    logging.info("Validation Accuracy: {}".format(dev_acc))
     dev_f1 = f1_score(all_true_labels, all_pred_labels)
     dev_prec = precision_score(all_true_labels, all_pred_labels)
     dev_rec = recall_score(all_true_labels, all_pred_labels)
-    print("F1-Score: {}".format(dev_f1), file=sys.stderr)
+    logging.info("F1-Score: {}".format(dev_f1))
     conf_cats = confusion_matrix(all_true_labels, all_pred_labels).ravel()
-    print("TN: {}, FP: {}, FN: {}, TP: {}".format(*conf_cats), file=sys.stderr)
+    logging.info("TN: {}, FP: {}, FN: {}, TP: {}".format(*conf_cats))
 
     tb_writer.add_scalar("dev_loss", dev_loss, epoch)
     tb_writer.add_scalar("dev_acc", dev_acc, epoch)
