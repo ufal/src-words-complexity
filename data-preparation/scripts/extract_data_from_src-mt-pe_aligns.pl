@@ -43,6 +43,9 @@ sub extract_from_sent_triple {
     return ($ali_comps, $token_index);
 }
 
+# INPUT: 3 token alignment strings representing 3 alignments between tokens (as indices) in corresponding {src, mt, pe} sentence
+# OUTPUT: a list of aligned components represented as a hash indexed by {src, mt, pe} and with a list of token indices as values
+# Take alignment strings and find connected components in them. Each component is returned as three lists of token indices, corresponding to {src, mt, pe}.
 sub find_aligned_components {
     my @sent_aligns = @_;
     chomp $_ foreach (@sent_aligns);
@@ -77,6 +80,9 @@ sub find_aligned_components {
     return \@comps_split_to_sides;
 }
 
+# INPUT: 2 bitext sentences (src-mt, src-pe) as a list of strings
+# OUTPUT: a hash indexed by {src, mt, pe} with lists of tokens as values
+# Split the bitexts (at tabs) and tokenize each side of the sentence triple (at spaces).
 sub tokenize_parts {
     my @bitext_lines = @_;
     @bitext_lines = map {chomp $_; split /\t/, $_} @bitext_lines;
