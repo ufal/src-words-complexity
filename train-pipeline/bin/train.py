@@ -27,7 +27,7 @@ argparser.add_argument("--max-grad-norm", default=1.0, type=float, help="Max gra
 argparser.add_argument("--weight-positive", default=0.5, type=float, help="A weight of positive examples in cross-entropy loss (must be in [0,1]).")
 args = argparser.parse_args()
 
-logdir_ignore_args = [ "train", "dev", "save-models" ]
+logdir_ignore_args = [ "train", "dev", "save_models" ]
 
 # Create logdir name
 args.logdir = os.path.join("runs", "{}-{}".format(
@@ -35,7 +35,7 @@ args.logdir = os.path.join("runs", "{}-{}".format(
     ",".join(("{}={}".format(re.sub("(.)[^_]*_?", r"\1", key), value) for key, value in sorted(vars(args).items()) if key not in logdir_ignore_args))
 ))
 os.mkdir(args.logdir)
-logging.basicConfig(filename=os.path.join(args.logdir, "run.log"), level=logging.DEBUG)
+logging.basicConfig(filename=os.path.join(args.logdir, "run.log"), level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 # Prepare directory for saving models
 if args.save_models:
