@@ -18,7 +18,7 @@ from classifiers import BertForWeighedTokenClassification
 argparser = argparse.ArgumentParser()
 argparser.add_argument("train", type=str, help="A path prefix to train data.")
 argparser.add_argument("dev", type=str, help="A path prefix to dev data.")
-argparser.add_argument("--model", type=str, help="A path where a final model is stored")
+argparser.add_argument("--save-models", action="store_true", help="If enabled, stores model to the $logdir/models directory.")
 argparser.add_argument("--max-sentences", type=int, default=None, help="A maximum number of sentences to be loaded per dataset.")
 argparser.add_argument("--epochs", type=int, default=4, help="Number of epochs")
 argparser.add_argument("--batch-size", type=int, default=32, help="Batch size")
@@ -27,7 +27,7 @@ argparser.add_argument("--max-grad-norm", default=1.0, type=float, help="Max gra
 argparser.add_argument("--weight-positive", default=0.5, type=float, help="A weight of positive examples in cross-entropy loss (must be in [0,1]).")
 args = argparser.parse_args()
 
-logdir_ignore_args = [ "train", "dev", "model" ]
+logdir_ignore_args = [ "train", "dev", "save-models" ]
 
 # Create logdir name
 args.logdir = os.path.join("runs", "{}-{}".format(
@@ -36,6 +36,11 @@ args.logdir = os.path.join("runs", "{}-{}".format(
 ))
 os.mkdir(args.logdir)
 logging.basicConfig(filename=os.path.join(args.logdir, "run.log"), level=logging.DEBUG)
+
+# Prepare directory for saving models
+if args.save_models:
+    args.modeldir = os.path.join(args.logdir, "models")
+    os.mkdir(args.modeldir)
 
 torch.manual_seed(1986)
 
@@ -127,6 +132,11 @@ for epoch in range(args.epochs):
             progbar.update(args.batch_size)
 
     logging.info("Train loss: {}".format(train_loss / train_batch_steps))
+
+    modeldir = os.path.join(args.modeldir, "epoch_{}".format(epoch+1))
+    os.mkdir(modeldir)
+    logging.info("Saving model to {}".format(modeldir))
+    model.save_pretrained(modeldir)
 
     # VALIDATION on validation set
     model.eval()

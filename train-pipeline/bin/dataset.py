@@ -171,9 +171,9 @@ class SrcComplexityDataset:
                 print("Loading {} dataset...".format(dataset))
                 setattr(self, dataset, self.Dataset(dataset_prefix,
                                                     tokenizer=tokenizer,
-#                                                   train=self.train if dataset != "train" else None,
+                                                    # train=self.train if dataset != "train" else None,
                                                     max_length=max_length,
                                                     max_sentences=max_sentences if max_sentences is None or dataset == "train" else int(max_sentences/10),
-                                                    shuffle_batches=True))
-                                                    #shuffle_batches=dataset == "train"))
+                                                    # shuffle_batches=True))
+                                                    shuffle_batches=dataset == "train"))
 
