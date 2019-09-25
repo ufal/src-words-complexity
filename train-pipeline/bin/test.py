@@ -16,6 +16,8 @@ argparser.add_argument("--batch-size", type=int, default=32, help="Batch size")
 argparser.add_argument("--max-sentences", type=int, default=None, help="A maximum number of sentences to be loaded per dataset.")
 args = argparser.parse_args()
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+
 torch.manual_seed(1986)
 
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
@@ -30,9 +32,11 @@ else:
     logging.info("Device: CPU")
 
 #  create model
+logging.info("Loading model from {}".format(args.model))
 model = BertForWeighedTokenClassification.from_pretrained(args.model)
 model.to(device)
 model.eval()
+logging.info("Model loaded")
 
 test_loss = 0
 test_batch_steps = 0
