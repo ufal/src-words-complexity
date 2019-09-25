@@ -5,6 +5,7 @@ import numpy as np
 import torch.utils.data as torch_data
 import torch
 import gzip
+import logging
 from pprint import pprint
 
 import numpy as np
@@ -56,7 +57,7 @@ class SrcComplexityDataset:
                 self.wpids.append(np.array(sent_wpids))
 
                 if not (sent_i % 10000):
-                    print("Loading tokens from sentence number {}".format(sent_i), file=sys.stderr)
+                    logging.info("Loading tokens from sentence number {}".format(sent_i))
 
             # process token labels
             self.wplabels = []
@@ -64,7 +65,7 @@ class SrcComplexityDataset:
                 sent_labels_arr = np.array(sent_labels, dtype=int)
                 self.wplabels.append(sent_labels_arr[self.wp_to_tokens_map[sent_i]])
                 if not (sent_i % 10000):
-                    print("Loading labels from sentence number {}".format(sent_i), file=sys.stderr)
+                    logging.info("Loading labels from sentence number {}".format(sent_i))
 
             if len(self.wpids) != len(self.wplabels):
                 raise ValueError("The words file must contain the same number of sentences (lines) as the labels file: {} vs. {}".format(
@@ -168,7 +169,7 @@ class SrcComplexityDataset:
         for dataset in ["train", "dev", "test"]:
             dataset_prefix = kwargs.get(dataset)
             if dataset_prefix is not None:
-                print("Loading {} dataset...".format(dataset))
+                logging.info("Loading {} dataset...".format(dataset))
                 setattr(self, dataset, self.Dataset(dataset_prefix,
                                                     tokenizer=tokenizer,
                                                     # train=self.train if dataset != "train" else None,
