@@ -60,18 +60,22 @@ $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape.ids.limit.txt.gz: $(TRAIN_DEV_
 
 ################################## NMT only data = data translated by PBSMT excluded #######################################
 
-train-amunmt16-escape18-ape-nmt : REGEX1=(amunmt16|escape18)-ape/
+train-amunmt16-escape18-ape-nmt train-amunmt16-ape-nmt train-escape18-ape-nmt : REGEX1=(amunmt16|escape18)-ape/
 train-amunmt16-escape18-ape-nmt : REGEX2=(amunmt16|escape18)-ape/(4M|500K|NMT)/
+train-amunmt16-ape-nmt : REGEX2=amunmt16-ape/
+train-escape18-ape-nmt : REGEX2=escape18-ape/NMT/
 train-amunmt16-escape18-ape-nmt : $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.ids.limit.txt.gz
-$(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.src.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
+train-amunmt16-ape-nmt : $(TRAIN_DEV_TEST_DIR)/train-amunmt16-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-amunmt16-ape-nmt.ids.limit.txt.gz
+train-escape18-ape-nmt : $(TRAIN_DEV_TEST_DIR)/train-escape18-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-escape18-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/train-escape18-ape-nmt.ids.limit.txt.gz
+$(TRAIN_DEV_TEST_DIR)/train-%.src.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
 	paste <(zcat $(word 2,$^)) <(zcat $(word 1,$^)) | grep -P '^\S*$(REGEX1)' | shuffle --random_seed 1986 |\
 	tail -n+$$(($(TEST_SIZE)+$(DEV_SIZE)+1)) | \
 	grep -P "^\S*$(REGEX2)" | cut -f2 | gzip -c > $@
-$(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.labels.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
+$(TRAIN_DEV_TEST_DIR)/train-%.labels.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
 	paste <(zcat $(word 2,$^)) <(zcat $(word 1,$^)) | grep -P '^\S*$(REGEX1)' | shuffle --random_seed 1986 |\
 	tail -n+$$(($(TEST_SIZE)+$(DEV_SIZE)+1)) | \
 	grep -P "^\S*$(REGEX2)" | cut -f2 | gzip -c > $@
-$(TRAIN_DEV_TEST_DIR)/train-amunmt16-escape18-ape-nmt.ids.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
+$(TRAIN_DEV_TEST_DIR)/train-%.ids.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
 	zcat $< | grep -P '^\S*$(REGEX1)' | shuffle --random_seed 1986 |\
 	tail -n+$$(($(TEST_SIZE)+$(DEV_SIZE)+1)) | \
 	grep -P "^\S*$(REGEX2)" | gzip -c > $@
@@ -88,13 +92,15 @@ $(TRAIN_DEV_TEST_DIR)/train_10-amunmt16-escape18-ape-nmt.%.limit.txt.gz: $(TRAIN
 ################################# DEV AND TEST SETS FROM SYNTETIC POST-EDIT DATA ###########################################
 ############################################################################################################################
 
-dev-amunmt16-ape-4m dev-amunmt16-ape-500k dev-escape18-ape-nmt dev-escape18-ape-pbsmt: REGEX1=(amunmt16|escape18)-ape/
+dev-amunmt16-ape-4m dev-amunmt16-ape-500k dev-amunmt16-ape dev-escape18-ape-nmt dev-escape18-ape-pbsmt: REGEX1=(amunmt16|escape18)-ape/
 dev-amunmt16-ape-4m : REGEX2=amunmt16-ape/4M/
 dev-amunmt16-ape-500k : REGEX2=amunmt16-ape/500K/
+dev-amunmt16-ape : REGEX2=amunmt16-ape/
 dev-escape18-ape-nmt : REGEX2=escape18-ape/NMT/
 dev-escape18-ape-pbsmt : REGEX2=escape18-ape/PBSMT/
 dev-amunmt16-ape-4m : $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-4m.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-4m.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-4m.ids.limit.txt.gz
 dev-amunmt16-ape-500k : $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-500k.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-500k.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape-500k.ids.limit.txt.gz
+dev-amunmt16-ape : $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-amunmt16-ape.ids.limit.txt.gz
 dev-escape18-ape-nmt : $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-nmt.ids.limit.txt.gz
 dev-escape18-ape-pbsmt : $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-pbsmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-pbsmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/dev-escape18-ape-pbsmt.ids.limit.txt.gz
 $(TRAIN_DEV_TEST_DIR)/dev-%.src.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
@@ -107,13 +113,15 @@ $(TRAIN_DEV_TEST_DIR)/dev-%.ids.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.ids.limi
 	zcat $< | grep -P '^\S*$(REGEX1)' | shuffle --random_seed 1986 |\
 	head -n+$$(($(TEST_SIZE)+$(DEV_SIZE))) | tail -n $(DEV_SIZE) | grep -P '^\S*$(REGEX2)' | gzip -c > $@
 
-test-amunmt16-ape-4m test-amunmt16-ape-500k test-escape18-ape-nmt test-escape18-ape-pbsmt: REGEX1=(amunmt16|escape18)-ape/
+test-amunmt16-ape-4m test-amunmt16-ape-500k test-amunmt16-ape test-escape18-ape-nmt test-escape18-ape-pbsmt: REGEX1=(amunmt16|escape18)-ape/
 test-amunmt16-ape-4m : REGEX2=amunmt16-ape/4M/
 test-amunmt16-ape-500k : REGEX2=amunmt16-ape/500K/
+test-amunmt16-ape : REGEX2=amunmt16-ape/
 test-escape18-ape-nmt : REGEX2=escape18-ape/NMT/
 test-escape18-ape-pbsmt : REGEX2=escape18-ape/PBSMT/
 test-amunmt16-ape-4m : $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-4m.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-4m.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-4m.ids.limit.txt.gz
 test-amunmt16-ape-500k : $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-500k.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-500k.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape-500k.ids.limit.txt.gz
+test-amunmt16-ape : $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-amunmt16-ape.ids.limit.txt.gz
 test-escape18-ape-nmt : $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-nmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-nmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-nmt.ids.limit.txt.gz
 test-escape18-ape-pbsmt : $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-pbsmt.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-pbsmt.labels.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/test-escape18-ape-pbsmt.ids.limit.txt.gz
 $(TRAIN_DEV_TEST_DIR)/test-%.src.limit.txt.gz: $(TRAIN_DEV_TEST_DIR)/all.src.limit.txt.gz $(TRAIN_DEV_TEST_DIR)/all.ids.limit.txt.gz
