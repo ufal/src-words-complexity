@@ -1,0 +1,13 @@
+Die ist eine Katze .
+3.5234	This	0.34	That	0.30	It	0.29
+1.2675	is	0.56	was	0.23
+0.6654	a	0.87	the	0.05
+2.3654	cat	0.42	kitty	0.32	pussy	0.23	tomcat	0.01
+0.0012	.	0.99
+
+Die ist ein Hund .
+3.5234	This	0.34	That	0.30	It	0.29
+1.2675	is	0.56	was	0.23
+0.6654	a	0.87	the	0.05
+1.2754	dog	0.62	hound	0.15	puppy	0.05
+0.0012	.	0.99
