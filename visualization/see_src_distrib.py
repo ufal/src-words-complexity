@@ -1,6 +1,18 @@
 import sys
 import argparse
-from termcolor import colored
+import termcolor
+
+
+def colored(text, color=None, on_color=None, attrs=None):
+    fg = lambda text, color: "\33[38;5;" + str(color) + "m" + text + "\33[0m"
+    bg = lambda text, color: "\33[48;5;" + str(color) + "m" + text + "\33[0m"
+    if isinstance(color, int):
+        text = fg(text, color)
+        color = None
+    if isinstance(on_color, int):
+        text = bg(text, on_color)
+        on_color = None
+    return termcolor.colored(text, color, on_color, attrs)
 
 
 def parse_sentence_from_strlist(lines):
@@ -14,11 +26,16 @@ def parse_sentence_from_strlist(lines):
         src_token_items.append({"entropy": float(entropy), "variants": variants_list})
     return {"trg": trg_tokens, "src": src_token_items}
 
+
 DECORATION_STYLES = {
-    "trg_sent": {"color": "cyan"},
+    "trg_sent": {"color": "yellow"},
     "top_src_token": {"color": "red"},
     "max_entropy": {"color": "yellow", "attrs": ["reverse"]},
 }
+COLOR_RANGE = list(range(21, 201, 36)) + list(range(201, 195, -1))
+for i, code in enumerate(COLOR_RANGE):
+    DECORATION_STYLES["entropy_" + str(i)] = {"on_color": code, "attrs": ["bold"]}
+
 
 
 def decorate_lines(lines, annot):
@@ -54,8 +71,7 @@ def trg_sent_lines(sent_info):
 
 
 def src_sent_lines(sent_info, hbar_size=4, ):
-    f = lambda k: sent_info["src"][k]["entropy"]
-    argmax_entropy = max(range(len(sent_info["src"])), key=f)
+    entr_levels = entropy_levels([si["entropy"] for si in sent_info["src"]], len(COLOR_RANGE))
     out_lines = []
     out_annot = []
     total_width = 0
@@ -88,8 +104,7 @@ def src_sent_lines(sent_info, hbar_size=4, ):
 
         # add padded entropy info to out_lines
         out_lines[0] += "{:{align}{width}}".format(entropy_cell, align=">", width=col_width)
-        if item_idx == argmax_entropy:
-            out_annot[0].append((total_width, total_width + col_width, "max_entropy"))
+        out_annot[0].append((total_width, total_width + col_width, "entropy_"+str(entr_levels[item_idx])))
 
         # add padded variants info to out_lines
         for i in range(len(out_lines)-1):
@@ -104,6 +119,18 @@ def src_sent_lines(sent_info, hbar_size=4, ):
 
         total_width += col_width
     return out_lines, out_annot
+
+
+def entropy_levels(entropies, levels=5):
+    # turning entropies to perplexities
+    entropies = [2**x for x in entropies]
+    # print(entropies, file=sys.stderr)
+    # total = sum(entropies)
+    mine = min(entropies)
+    maxe = max(entropies)
+    levels = [round((levels-1)*(x-mine)/(maxe-mine)) for x in entropies]
+    # print(levels, file=sys.stderr)
+    return levels
 
 
 FULL_BLOCK = u"\u2588"
