@@ -166,4 +166,10 @@ for line in sys.stdin:
         sent_info = parse_sentence_from_strlist(item_lines)
         print_sentence_info(sent_info)
         item_lines = []
-    item_lines.append(line)
+    else:
+        item_lines.append(line)
+
+if len(item_lines) > 0:
+    sent_info = parse_sentence_from_strlist(item_lines)
+    print_sentence_info(sent_info)
+
