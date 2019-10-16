@@ -16,7 +16,8 @@ def colored(text, color=None, on_color=None, attrs=None):
 
 
 def parse_sentence_from_strlist(lines):
-    trg_tokens = lines.pop(0).rstrip().split(" ")
+    trg_sent = lines.pop(0).rstrip()
+    src_sent = lines.pop(0).rstrip()
     src_token_items = []
     for line in lines:
         entropy, *variants = line.rstrip().split("\t")
@@ -24,10 +25,11 @@ def parse_sentence_from_strlist(lines):
         probs = variants[1::2]
         variants_list = list(zip(tokens, [float(x) for x in probs]))
         src_token_items.append({"entropy": float(entropy), "variants": variants_list})
-    return {"trg": trg_tokens, "src": src_token_items}
+    return {"trg_sent": trg_sent, "src_sent": src_sent, "src_tokens": src_token_items}
 
 
 DECORATION_STYLES = {
+    "src_sent": {"color": "cyan"},
     "trg_sent": {"color": "yellow"},
     "top_src_token": {"color": "red"},
     "max_entropy": {"color": "yellow", "attrs": ["reverse"]},
@@ -54,28 +56,30 @@ def decorate_lines(lines, annot):
 
 
 def print_sentence_info(sent_info):
-    trg_lines, trg_annot = trg_sent_lines(sent_info)
-    src_lines, src_annot = src_sent_lines(sent_info)
+    trg_lines, trg_annot = sent_lines(sent_info, "trg_sent")
+    src_lines, src_annot = sent_lines(sent_info, "src_sent")
+    src_tokens_lines, src_tokens_annot = src_sent_lines(sent_info)
     if not args.no_color:
-        decor_lines = decorate_lines(trg_lines+src_lines, trg_annot+src_annot)
+        decor_lines = decorate_lines(trg_lines+src_lines+src_tokens_lines, trg_annot+src_annot+src_tokens_annot)
     else:
-        decor_lines = trg_lines+src_lines
+        decor_lines = trg_lines+src_lines+src_tokens_lines
     for l in decor_lines:
         print(l)
+    print()
 
 
-def trg_sent_lines(sent_info):
-    trg_line = " ".join(sent_info["trg"])
-    trg_annot = [(0, len(trg_line), "trg_sent")]
-    return [trg_line], [trg_annot]
+def sent_lines(sent_info, label):
+    sent = sent_info[label]
+    annot = [(0, len(sent), label)]
+    return [sent], [annot]
 
 
 def src_sent_lines(sent_info, hbar_size=4, ):
-    entr_levels = entropy_levels([si["entropy"] for si in sent_info["src"]], len(COLOR_RANGE))
+    entr_levels = entropy_levels([si["entropy"] for si in sent_info["src_tokens"]], len(COLOR_RANGE))
     out_lines = []
     out_annot = []
     total_width = 0
-    for item_idx, src_item in enumerate(sent_info["src"]):
+    for item_idx, src_item in enumerate(sent_info["src_tokens"]):
         # add additional lines if the token has more variants than the tokens processed so far
         # +1: an additional line for entropy
         while len(out_lines) < len(src_item["variants"])+1:

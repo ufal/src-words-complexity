@@ -1,4 +1,5 @@
 Die ist eine Katze .
+This is a cat.
 3.5234	This	0.34	That	0.30	It	0.29
 1.2675	is	0.56	was	0.23
 0.6654	a	0.87	the	0.05
@@ -6,6 +7,7 @@ Die ist eine Katze .
 0.0012	.	0.99
 
 Die ist ein Hund .
+This is a dog.
 3.5234	This	0.34	That	0.30	It	0.29
 1.2675	is	0.56	was	0.23
 0.6654	a	0.87	the	0.05
